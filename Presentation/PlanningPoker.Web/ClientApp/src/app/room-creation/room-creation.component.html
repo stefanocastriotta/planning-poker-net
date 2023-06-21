@@ -1,0 +1,38 @@
+<form (ngSubmit)="onSubmit()" [formGroup]="roomCreation">
+  <mat-form-field>
+    <mat-label>Description</mat-label>
+    <input matInput formControlName="description">
+    <mat-error *ngIf="errorHandling('description', 'required')">
+      You must provide a <strong>description</strong>
+   </mat-error>
+  </mat-form-field>
+  <mat-form-field>
+    <mat-label>Cards</mat-label>
+    <mat-select formControlName="estimateValueCategoryId">
+      <mat-option *ngFor="let estimateValue of estimateValueCategories$ | async" [value]="estimateValue.id">
+        {{estimateValue.description}}
+      </mat-option>
+      <mat-option [value]="-1">New List</mat-option>
+    </mat-select>
+  </mat-form-field>
+  <ng-container *ngIf="roomCreation.value.estimateValueCategoryId === -1">
+    <mat-form-field>
+      <mat-label>New Category name</mat-label>
+      <input matInput formControlName="newEstimateValueCategory">
+      <mat-error *ngIf="errorHandling('newEstimateValueCategory', 'required')">
+        You must provide a <strong>name</strong>
+      </mat-error>
+    </mat-form-field>
+    <mat-form-field>
+      <mat-label>Values</mat-label>
+      <input matInput formControlName="newEstimateValueCategoryValues">
+      <mat-error *ngIf="errorHandling('newEstimateValueCategoryValues', 'required')">
+        You must provide a <strong>list of values</strong>
+      </mat-error>
+    </mat-form-field>
+  </ng-container>
+ 
+  <button type="submit" [disabled]="!roomCreation.valid">
+    Save
+  </button>
+</form>

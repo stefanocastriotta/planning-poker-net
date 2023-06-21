@@ -1,0 +1,56 @@
+<ng-container *ngIf="planningRoom">
+<p>{{planningRoom.description}} - {{planningRoom.id}}</p>
+<div style="display: flex; flex-direction: row; ">
+    <div style="width:70%">
+        <h2>Product backlog items</h2>
+        <table class='table table-striped' aria-labelledby="tableLabel" *ngIf="planningRoom.productBacklogItem">
+            <thead>
+            <tr>
+                <th>Id</th>
+                <th>Description</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let item of planningRoom.productBacklogItem">
+                <td>{{ item.id }}</td>
+                <td>{{ item.description }}</td>
+                <td>{{ item.status.label }}</td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+        <h3>Add new product backlog item</h3>
+        <form (ngSubmit)="onSubmit()" [formGroup]="productBacklogItemCreation">
+            <mat-form-field>
+            <mat-label>Description</mat-label>
+            <input matInput formControlName="description">
+            <mat-error *ngIf="errorHandling('description', 'required')">
+                You must provide a <strong>description</strong>
+            </mat-error>
+            </mat-form-field>
+        
+            <button type="submit" [disabled]="!productBacklogItemCreation.valid">
+            Save
+            </button>
+        </form>
+    </div>
+    <div style="width: fit-content;">
+        <h2>Users</h2>
+        <table class='table table-striped' aria-labelledby="tableLabel" *ngIf="planningRoom.planningRoomUsers">
+            <thead>
+            <tr>
+                <th>Username</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr *ngFor="let item of planningRoom.planningRoomUsers">
+                <td>{{ item.userName }}</td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</ng-container>
