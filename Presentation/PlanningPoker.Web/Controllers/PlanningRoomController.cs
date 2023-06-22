@@ -34,10 +34,13 @@ namespace PlanningPoker.Web.Controllers
         {
             var result = await _planningPokerContext.PlanningRoom
                 .Include(p => p.EstimateValueCategory)
-                .ThenInclude(p => p.EstimateValue)
+                    .ThenInclude(p => p.EstimateValue)
                 .Include(p => p.ProductBacklogItem)
-                .ThenInclude(p => p.Status)
+                    .ThenInclude(p => p.Status)
+                .Include(p => p.ProductBacklogItem)
+                    .ThenInclude(p => p.ProductBacklogItemEstimate)
                 .Include(p => p.PlanningRoomUsers)
+                    .ThenInclude(p => p.User)
                 .SingleOrDefaultAsync(p => p.Id == id);
             if (result == null)
             {
@@ -93,23 +96,6 @@ namespace PlanningPoker.Web.Controllers
             await _planningPokerContext.SaveChangesAsync();
             
             return Created(Url.Action(nameof(Get), new { id = result.Id }), _mapper.Map<PlanningRoomModel>(result));
-        }
-
-        [HttpPost("{id}/addproductbacklogitem")]
-        public async Task<ActionResult<ProductBacklogItemModel>> AddProductBacklogItem(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
-        {
-            var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == id);
-            if (!existing)
-            {
-                return NotFound();
-            }
-
-            productBacklogItem.PlanningRoomId = id;
-            var result = await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
-            await _planningPokerContext.SaveChangesAsync();
-            result.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
-
-            return Ok(_mapper.Map<ProductBacklogItemModel>(result));
         }
 
         // PUT api/<PlanningRoomController>/5

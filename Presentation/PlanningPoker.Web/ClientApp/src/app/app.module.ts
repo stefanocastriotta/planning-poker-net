@@ -17,6 +17,9 @@ import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { MatSelectModule } from '@angular/material/select'
 import { MatInputModule } from '@angular/material/input';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatIconModule } from '@angular/material/icon';
 import { PlanningRoomComponent } from './planning-room/planning-room.component';
 
 @NgModule({
@@ -38,6 +41,9 @@ import { PlanningRoomComponent } from './planning-room/planning-room.component';
     MatInputModule,
     MatFormFieldModule,
     MatSelectModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
     ApiAuthorizationModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, pathMatch: 'full' },

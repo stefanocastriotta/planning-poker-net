@@ -15,8 +15,8 @@ namespace PlanningPoker.Web.Models
 
         public int StatusId { get; set; }
 
-        //public virtual ICollection<ProductBacklogItemEstimate> ProductBacklogItemEstimate { get; set; } = new List<ProductBacklogItemEstimate>();
+        public List<ProductBacklogItemEstimateModel> ProductBacklogItemEstimate { get; set; }
 
-        public virtual ProductBacklogItemStatusModel? Status { get; set; }
+        public ProductBacklogItemStatusModel? Status { get; set; }
     }
 }

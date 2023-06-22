@@ -29,12 +29,27 @@ export interface ProductBacklogItem{
     id: number;
     description: string;
     createDate: Date;
-    status: ProductBacklogItemStatus
+    status: ProductBacklogItemStatus;
+    statusId: ProductBacklogItemStatusEnum;
+    productBacklogItemEstimate: ProductBacklogItemEstimate[];
 }
 
 export interface ProductBacklogItemStatus{
-    id: number;
+    id: ProductBacklogItemStatusEnum;
     label: string;
     order: number;
     isActive: boolean;
+}
+
+export interface ProductBacklogItemEstimate{
+    id: number;
+    userId: string;
+    estimateValueId: number;
+    createDate: Date;
+}
+
+export enum ProductBacklogItemStatusEnum{
+    "Inserted" = 1,
+    "Processing" = 2,
+    "Completed" = 3
 }

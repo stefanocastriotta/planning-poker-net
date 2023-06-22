@@ -2,7 +2,18 @@
 <p>{{planningRoom.description}} - {{planningRoom.id}}</p>
 <div style="display: flex; flex-direction: row; ">
     <div style="width:70%">
-        <h2>Product backlog items</h2>
+        <ng-container *ngIf="selectedProductBacklogItem?.status?.id === processingStatus">
+            <h2>{{selectedProductBacklogItem!.description}}</h2>
+            <div style="display: flex; flex-direction: row; flex-wrap: wrap">
+                <mat-card *ngFor="let cat of planningRoom.estimateValueCategory.estimateValue">
+                    <mat-card-content>
+                       <button mat-flat-button><h3>{{cat.label}}</h3></button> 
+                    </mat-card-content>
+                </mat-card>
+            </div>
+        </ng-container>
+        
+        <h3>Product backlog items</h3>
         <table class='table table-striped' aria-labelledby="tableLabel" *ngIf="planningRoom.productBacklogItem">
             <thead>
             <tr>
@@ -17,7 +28,10 @@
                 <td>{{ item.id }}</td>
                 <td>{{ item.description }}</td>
                 <td>{{ item.status.label }}</td>
-                <td></td>
+                <td>
+                    <button mat-flat-button color="primary" (click)="selectProductBacklogItem(item)" *ngIf="item.id !== selectedProductBacklogItem?.id">Select</button>
+                    <button mat-icon-button (click)="deleteProductBacklogItem(item)"><mat-icon>delete</mat-icon></button>
+                </td>
             </tr>
             </tbody>
         </table>
@@ -31,7 +45,7 @@
             </mat-error>
             </mat-form-field>
         
-            <button type="submit" [disabled]="!productBacklogItemCreation.valid">
+            <button type="submit" mat-raised-button color="primary" [disabled]="!productBacklogItemCreation.valid">
             Save
             </button>
         </form>
@@ -42,12 +56,13 @@
             <thead>
             <tr>
                 <th>Username</th>
+                <th></th>
             </tr>
             </thead>
             <tbody>
-            <tr *ngFor="let item of planningRoom.planningRoomUsers">
-                <td>{{ item.userName }}</td>
-                <td></td>
+            <tr *ngFor="let user of planningRoom.planningRoomUsers">
+                <td>{{ user.userName }}</td>
+                <td><mat-icon *ngIf="estimated(user)">check_circle</mat-icon></td>
             </tr>
             </tbody>
         </table>

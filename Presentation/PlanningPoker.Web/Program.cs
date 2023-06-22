@@ -40,9 +40,16 @@ builder.Services.AddAutoMapper((serviceProvider, automapper) =>
     automapper.CreateMap<PlanningRoomModel, PlanningRoom>().ReverseMap();
     automapper.CreateMap<EstimateValueModel, EstimateValue>().ReverseMap();
     automapper.CreateMap<EstimateValueCategoryModel, EstimateValueCategory>().ReverseMap();
-    automapper.CreateMap<PlanningRoomUsers, PlanningRoomUserModel>().ForAllMembers(a => a.MapFrom(b => b.User));
     automapper.CreateMap<AspNetUsers, PlanningRoomUserModel>();
-    automapper.CreateMap<ProductBacklogItemModel, ProductBacklogItem>().ReverseMap();
+    automapper.CreateMap<PlanningRoomUsers, PlanningRoomUserModel>()
+        .IncludeMembers(p => p.User);
+
+    automapper.CreateMap<ProductBacklogItemModel, ProductBacklogItem>()
+        .ForMember(p => p.Status, map => map.Ignore())
+        .ForMember(p => p.ProductBacklogItemEstimate, map => map.Ignore())
+        .ReverseMap();
+    automapper.CreateMap<ProductBacklogItemEstimate, ProductBacklogItemEstimateModel>();
+
     automapper.CreateMap<ProductBacklogItemStatusModel, ProductBacklogItemStatus>().ReverseMap();
 }, typeof(PlanningPokerContext).Assembly);
 
