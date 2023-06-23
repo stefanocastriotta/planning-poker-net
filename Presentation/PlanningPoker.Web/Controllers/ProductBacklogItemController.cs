@@ -25,7 +25,7 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductBacklogItemModel>> Post([FromBody] ProductBacklogItemModel productBacklogItem)
+        public async Task<ActionResult<ProductBacklogItemDto>> Post([FromBody] ProductBacklogItemModel productBacklogItem)
         {
             var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == productBacklogItem.PlanningRoomId);
             if (!existing)
@@ -37,11 +37,11 @@ namespace PlanningPoker.Web.Controllers
             await _planningPokerContext.SaveChangesAsync();
             result.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
 
-            return Ok(_mapper.Map<ProductBacklogItemModel>(result));
+            return Ok(_mapper.Map<ProductBacklogItemDto>(result));
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductBacklogItemModel>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
+        public async Task<ActionResult<ProductBacklogItemDto>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
         {
             var existing = await _planningPokerContext.ProductBacklogItem.SingleOrDefaultAsync(p => p.Id == id);
             if (existing == null)
@@ -49,11 +49,20 @@ namespace PlanningPoker.Web.Controllers
                 return NotFound();
             }
 
+            using var transaction = await _planningPokerContext.Database.BeginTransactionAsync();
+            if (productBacklogItem.StatusId == 2)
+            {
+                _planningPokerContext.ProductBacklogItem
+                    .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId && p.StatusId == 2)
+                    .ExecuteUpdate(u => u.SetProperty(p => p.StatusId, p => 1));
+            }
+
             var result = await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
             await _planningPokerContext.SaveChangesAsync();
             result.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
+            await transaction.CommitAsync();
 
-            return Ok(_mapper.Map<ProductBacklogItemModel>(result));
+            return Ok(_mapper.Map<ProductBacklogItemDto>(result));
         }
 
         // DELETE api/<ProductBacklogItemController>/5

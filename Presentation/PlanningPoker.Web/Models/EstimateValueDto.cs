@@ -1,6 +1,6 @@
 ﻿namespace PlanningPoker.Web.Models
 {
-    public class EstimateValueModel
+    public class EstimateValueDto
     {
         public int Id { get; set; }
 

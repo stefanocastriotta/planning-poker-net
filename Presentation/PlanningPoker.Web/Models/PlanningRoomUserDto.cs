@@ -2,7 +2,7 @@
 
 namespace PlanningPoker.Web.Models
 {
-    public class PlanningRoomUserModel
+    public class PlanningRoomUserDto
     {
         public string Id { get; set; }
 

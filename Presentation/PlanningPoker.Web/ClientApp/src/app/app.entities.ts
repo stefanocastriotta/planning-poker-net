@@ -43,6 +43,7 @@ export interface ProductBacklogItemStatus{
 
 export interface ProductBacklogItemEstimate{
     id: number;
+    productBacklogItemId: number;
     userId: string;
     estimateValueId: number;
     createDate: Date;

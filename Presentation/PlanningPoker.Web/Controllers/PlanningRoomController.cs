@@ -30,7 +30,7 @@ namespace PlanningPoker.Web.Controllers
 
         // GET api/<PlanningRoomController>/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<PlanningRoomModel?>> Get(int id)
+        public async Task<ActionResult<PlanningRoomDto?>> Get(int id)
         {
             var result = await _planningPokerContext.PlanningRoom
                 .Include(p => p.EstimateValueCategory)
@@ -47,8 +47,26 @@ namespace PlanningPoker.Web.Controllers
                 return NotFound();
             }
 
-            return _mapper.Map<PlanningRoomModel>(result);
+            return _mapper.Map<PlanningRoomDto>(result);
         }
+
+        [HttpGet("{id}/productBacklogItems")]
+        public async Task<ActionResult<List<ProductBacklogItemDto>>> GetProductBacklogItems(int id)
+        {
+            var result = await _planningPokerContext.ProductBacklogItem
+                .Include(p => p.Status)
+                .Include(p => p.ProductBacklogItemEstimate)
+                .Where(p => p.PlanningRoomId == id)
+                .ToListAsync();
+
+            if (result == null)
+            {
+                return NotFound();
+            }
+
+            return _mapper.Map<List<ProductBacklogItemDto>>(result);
+        }
+
 
         [HttpPost("{id}/registeruser")]
         public async Task<ActionResult> RegisterUser(int id)
@@ -95,7 +113,7 @@ namespace PlanningPoker.Web.Controllers
             var result = await _planningPokerContext.PlanningRoom.Persist(_mapper).InsertOrUpdateAsync(value);
             await _planningPokerContext.SaveChangesAsync();
             
-            return Created(Url.Action(nameof(Get), new { id = result.Id }), _mapper.Map<PlanningRoomModel>(result));
+            return Created(Url.Action(nameof(Get), new { id = result.Id }), _mapper.Map<PlanningRoomDto>(result));
         }
 
         // PUT api/<PlanningRoomController>/5

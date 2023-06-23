@@ -38,7 +38,7 @@ namespace PlanningPoker.Web.Controllers
             var result = await _planningPokerContext.ProductBacklogItemEstimate.Persist(_mapper).InsertOrUpdateAsync(productBacklogItemEstimateModel);
             await _planningPokerContext.SaveChangesAsync();
 
-            return Ok(_mapper.Map<ProductBacklogItemModel>(result));
+            return Ok(_mapper.Map<ProductBacklogItemEstimateDto>(result));
         }
     }
 }

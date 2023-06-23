@@ -2,7 +2,7 @@
 
 namespace PlanningPoker.Web.Models
 {
-    public class ProductBacklogItemStatusModel
+    public class ProductBacklogItemStatusDto
     {
         public int Id { get; set; }
 

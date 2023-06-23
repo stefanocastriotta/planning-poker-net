@@ -7,7 +7,7 @@
             <div style="display: flex; flex-direction: row; flex-wrap: wrap">
                 <mat-card *ngFor="let cat of planningRoom.estimateValueCategory.estimateValue">
                     <mat-card-content>
-                       <button mat-flat-button><h3>{{cat.label}}</h3></button> 
+                       <button mat-flat-button [disabled]="currentUserEstimated()" (click)="registerEstimate(cat)"><h3>{{cat.label}}</h3></button> 
                     </mat-card-content>
                 </mat-card>
             </div>

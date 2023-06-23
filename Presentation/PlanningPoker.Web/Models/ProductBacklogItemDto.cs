@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PlanningPoker.Web.Models
 {
-    public class ProductBacklogItemModel
+    public class ProductBacklogItemDto
     {
         public int Id { get; set; }
 
@@ -11,6 +11,12 @@ namespace PlanningPoker.Web.Models
 
         public string Description { get; set; }
 
+        public DateTime CreateDate { get; set; }
+
         public int StatusId { get; set; }
+
+        public List<ProductBacklogItemEstimateModel> ProductBacklogItemEstimate { get; set; }
+
+        public ProductBacklogItemStatusDto Status { get; set; }
     }
 }

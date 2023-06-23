@@ -37,20 +37,21 @@ builder.Services.AddAutoMapper((serviceProvider, automapper) =>
 {
     automapper.AddCollectionMappers();
     automapper.UseEntityFrameworkCoreModel<PlanningPokerContext>(serviceProvider);
-    automapper.CreateMap<PlanningRoomModel, PlanningRoom>().ReverseMap();
-    automapper.CreateMap<EstimateValueModel, EstimateValue>().ReverseMap();
-    automapper.CreateMap<EstimateValueCategoryModel, EstimateValueCategory>().ReverseMap();
-    automapper.CreateMap<AspNetUsers, PlanningRoomUserModel>();
-    automapper.CreateMap<PlanningRoomUsers, PlanningRoomUserModel>()
+    automapper.CreateMap<PlanningRoom, PlanningRoomDto>();
+    automapper.CreateMap<PlanningRoomModel, PlanningRoom>();
+    automapper.CreateMap<EstimateValue, EstimateValueDto>();
+    automapper.CreateMap<EstimateValueCategory, EstimateValueCategoryDto>();
+    automapper.CreateMap<AspNetUsers, PlanningRoomUserDto>();
+    automapper.CreateMap<PlanningRoomUsers, PlanningRoomUserDto>()
         .IncludeMembers(p => p.User);
 
-    automapper.CreateMap<ProductBacklogItemModel, ProductBacklogItem>()
-        .ForMember(p => p.Status, map => map.Ignore())
-        .ForMember(p => p.ProductBacklogItemEstimate, map => map.Ignore())
-        .ReverseMap();
-    automapper.CreateMap<ProductBacklogItemEstimate, ProductBacklogItemEstimateModel>();
+    automapper.CreateMap<ProductBacklogItemModel, ProductBacklogItem>();
+    automapper.CreateMap<ProductBacklogItem, ProductBacklogItemDto>();
+    automapper.CreateMap<ProductBacklogItemEstimate, ProductBacklogItemEstimateDto>();
+    automapper.CreateMap<ProductBacklogItemEstimateModel, ProductBacklogItemEstimate>();
 
-    automapper.CreateMap<ProductBacklogItemStatusModel, ProductBacklogItemStatus>().ReverseMap();
+    automapper.CreateMap<ProductBacklogItemStatus, ProductBacklogItemStatusDto>();
+
 }, typeof(PlanningPokerContext).Assembly);
 
 var app = builder.Build();
