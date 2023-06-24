@@ -14,6 +14,7 @@ export interface EstimateValue{
 export interface PlanningRoom{
     id: number;
     description: string;
+    creationUserId: string;
     estimateValueCategoryId: number;
     estimateValueCategory: EstimateValueCategory;
     planningRoomUsers: PlanningRoomUser[];

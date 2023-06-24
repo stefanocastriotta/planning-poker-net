@@ -6,6 +6,7 @@ import { switchMap, tap } from 'rxjs';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthorizeService } from 'src/api-authorization/authorize.service';
 import { Profile, User } from 'oidc-client';
+import * as signalR from '@microsoft/signalr';
 
 @Component({
   selector: 'app-planning-room',
@@ -16,6 +17,8 @@ export class PlanningRoomComponent {
 
   productBacklogItemCreation: FormGroup;
   fb: FormBuilder = new FormBuilder();
+  private hubConnection: signalR.HubConnection | undefined;
+
   planningRoom: PlanningRoom;
   currentUserId: string;
 
@@ -33,6 +36,37 @@ export class PlanningRoomComponent {
       )
       .subscribe((res: PlanningRoom) => {
         this.selectedProductBacklogItem = res.productBacklogItem.sort(p => p.id).find(p => p.status.id === ProductBacklogItemStatusEnum.Processing);
+
+        this.authorizeService.getAccessToken().subscribe(
+          (res) => {
+            this.hubConnection = new signalR.HubConnectionBuilder()
+            .withUrl(`${this.baseUrl}planningRoomHub?token=${res}`, { accessTokenFactory: () => res } as signalR.IHttpConnectionOptions)
+            .configureLogging(signalR.LogLevel.Debug)
+            .build();
+       
+            this.hubConnection.start()
+            .then(() => this.hubConnection?.invoke('AddToGroup', this.planningRoom.id))
+            .catch((err) => console.error(err.toString()));
+        
+            this.hubConnection.on('UserJoined', (user: PlanningRoomUser) => {
+              this.planningRoom.planningRoomUsers.push(user);
+            });
+
+            this.hubConnection.on('ProductBacklogItemInserted', (productBacklogItem: ProductBacklogItem) => {
+              this.planningRoom.productBacklogItem.push(productBacklogItem);
+            });
+
+            this.hubConnection.on('ProductBacklogItemUpdated', (updatedId: number, productBacklogItems: ProductBacklogItem[]) => {
+              this.planningRoom.productBacklogItem = productBacklogItems;
+              this.selectedProductBacklogItem = this.planningRoom.productBacklogItem.find(p => p.id === updatedId);
+            });
+
+            this.hubConnection.on('ProductBacklogItemEstimated', (estimate: ProductBacklogItemEstimate) => {
+              this.selectedProductBacklogItem?.productBacklogItemEstimate.push(estimate);
+            });
+
+          }
+        )
       })
     });
 
@@ -44,13 +78,13 @@ export class PlanningRoomComponent {
     this.productBacklogItemCreation = this.fb.group({
       description: ['', Validators.required]
     });
+
   }
 
   selectProductBacklogItem(productBacklogItem: ProductBacklogItem){
-    this.http.put<ProductBacklogItem>(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`, {...productBacklogItem, statusId: ProductBacklogItemStatusEnum.Processing, status: undefined},
-    { headers:{ 'content-type': 'application/json'}   }).pipe(
-      switchMap(() => this.http.get<ProductBacklogItem[]>(`${this.baseUrl}api/planningroom/${this.planningRoom.id}/productBacklogItems`))
-    ).subscribe(res => {
+    this.http.put<ProductBacklogItem[]>(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`, {...productBacklogItem, statusId: ProductBacklogItemStatusEnum.Processing, status: undefined},
+    { headers:{ 'content-type': 'application/json'}   })
+    .subscribe(res => {
       this.planningRoom.productBacklogItem = res;
       this.selectedProductBacklogItem = this.planningRoom.productBacklogItem.find(p => p.id === productBacklogItem.id);
     });
@@ -60,12 +94,12 @@ export class PlanningRoomComponent {
     
   }
 
-  currentUserEstimated(){
-    return this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === this.currentUserId)??false;
+  cardSelected(estimateValue: EstimateValue):boolean{
+    return this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === this.currentUserId && pe.estimateValueId === estimateValue.id) ?? false;
   }
 
   estimated(user: PlanningRoomUser): boolean{
-    return this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === user.id)??false;
+    return this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === user.id) ?? false;
   }
 
   onSubmit() {
@@ -87,15 +121,17 @@ export class PlanningRoomComponent {
   }
 
   registerEstimate(estimate: EstimateValue) {
-    this.http.post<ProductBacklogItemEstimate>(`${this.baseUrl}api/productbacklogitemestimate`, 
-      { estimateValueId: estimate.id,
-        productBacklogItemId: this.selectedProductBacklogItem?.id
-      } as ProductBacklogItemEstimate,
-      { headers:{ 'content-type': 'application/json'}   }).subscribe(
-        (res) => {
-          this.selectedProductBacklogItem?.productBacklogItemEstimate.push(res);
-        }
-      )
+    if (!this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === this.currentUserId)){
+      this.http.post<ProductBacklogItemEstimate>(`${this.baseUrl}api/productbacklogitemestimate`, 
+        { estimateValueId: estimate.id,
+          productBacklogItemId: this.selectedProductBacklogItem?.id
+        } as ProductBacklogItemEstimate,
+        { headers:{ 'content-type': 'application/json'}   }).subscribe(
+          (res) => {
+            this.selectedProductBacklogItem?.productBacklogItemEstimate.push(res);
+          }
+        )
+    }
   }
 
   public errorHandling = (control: string, error: string) => {

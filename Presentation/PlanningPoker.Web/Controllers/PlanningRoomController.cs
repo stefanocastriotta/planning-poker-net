@@ -2,11 +2,13 @@
 using AutoMapper.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json.Linq;
 using PlanningPoker.Domain;
 using PlanningPoker.Infrastructure;
 using PlanningPoker.Web.Models;
+using PlanningPoker.Web.SignalrHub;
 using System.Security.Claims;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -20,11 +22,15 @@ namespace PlanningPoker.Web.Controllers
     {
         readonly PlanningPokerContext _planningPokerContext;
         readonly IMapper _mapper;
+        readonly IHubContext<PlanningRoomHub, IPlanningRoomHub> _hubContext;
+        readonly ConnectionManager _connectionManager;
 
-        public PlanningRoomController(PlanningPokerContext planningPokerContext, IMapper mapper)
+        public PlanningRoomController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager)
         {
             _planningPokerContext = planningPokerContext;
             _mapper = mapper;
+            _hubContext = hubContext;
+            _connectionManager = connectionManager;
         }
 
 
@@ -50,24 +56,6 @@ namespace PlanningPoker.Web.Controllers
             return _mapper.Map<PlanningRoomDto>(result);
         }
 
-        [HttpGet("{id}/productBacklogItems")]
-        public async Task<ActionResult<List<ProductBacklogItemDto>>> GetProductBacklogItems(int id)
-        {
-            var result = await _planningPokerContext.ProductBacklogItem
-                .Include(p => p.Status)
-                .Include(p => p.ProductBacklogItemEstimate)
-                .Where(p => p.PlanningRoomId == id)
-                .ToListAsync();
-
-            if (result == null)
-            {
-                return NotFound();
-            }
-
-            return _mapper.Map<List<ProductBacklogItemDto>>(result);
-        }
-
-
         [HttpPost("{id}/registeruser")]
         public async Task<ActionResult> RegisterUser(int id)
         {
@@ -82,6 +70,9 @@ namespace PlanningPoker.Web.Controllers
             {
                 await _planningPokerContext.PlanningRoomUsers.AddAsync(new PlanningRoomUsers() {  PlanningRoomId = id, UserId = currentUserId });
                 await _planningPokerContext.SaveChangesAsync();
+
+                var newUser = _planningPokerContext.PlanningRoomUsers.Include(p => p.User).Single(p => p.UserId == currentUserId && p.PlanningRoomId == id);
+                await _hubContext.Clients.GroupExcept("PlanningRoom" + id, _connectionManager.GetUserConnectionId(currentUserId)).UserJoined(_mapper.Map<PlanningRoomUserDto>(newUser));
             }
 
             return NoContent();

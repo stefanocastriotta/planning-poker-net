@@ -13,13 +13,12 @@ const PROXY_CONFIG = [
       "/connect",
       "/ApplyDatabaseMigrations",
       "/_framework",
+      "/planningRoomHub",
       "/api",
     ],
     target: target,
     secure: false,
-    headers: {
-      Connection: 'Keep-Alive'
-    }
+    ws:true
   }
 ]
 

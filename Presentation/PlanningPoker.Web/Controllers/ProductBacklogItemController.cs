@@ -1,10 +1,14 @@
 ﻿using AutoMapper;
 using AutoMapper.EntityFrameworkCore;
+using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using PlanningPoker.Infrastructure;
 using PlanningPoker.Web.Models;
+using PlanningPoker.Web.SignalrHub;
+using System.Security.Claims;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -17,11 +21,16 @@ namespace PlanningPoker.Web.Controllers
     {
         readonly PlanningPokerContext _planningPokerContext;
         readonly IMapper _mapper;
+        readonly IHubContext<PlanningRoomHub, IPlanningRoomHub> _hubContext;
+        readonly ConnectionManager _connectionManager;
 
-        public ProductBacklogItemController(PlanningPokerContext planningPokerContext, IMapper mapper)
+
+        public ProductBacklogItemController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager)
         {
             _planningPokerContext = planningPokerContext;
             _mapper = mapper;
+            _hubContext = hubContext;
+            _connectionManager = connectionManager;
         }
 
         [HttpPost]
@@ -37,11 +46,16 @@ namespace PlanningPoker.Web.Controllers
             await _planningPokerContext.SaveChangesAsync();
             result.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
 
-            return Ok(_mapper.Map<ProductBacklogItemDto>(result));
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var dto = _mapper.Map<ProductBacklogItemDto>(result);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemInserted(dto);
+
+            return Ok(dto);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<ProductBacklogItemDto>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
+        public async Task<ActionResult<List<ProductBacklogItemDto>>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
         {
             var existing = await _planningPokerContext.ProductBacklogItem.SingleOrDefaultAsync(p => p.Id == id);
             if (existing == null)
@@ -57,12 +71,23 @@ namespace PlanningPoker.Web.Controllers
                     .ExecuteUpdate(u => u.SetProperty(p => p.StatusId, p => 1));
             }
 
-            var result = await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
+            await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
             await _planningPokerContext.SaveChangesAsync();
-            result.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
+            
             await transaction.CommitAsync();
 
-            return Ok(_mapper.Map<ProductBacklogItemDto>(result));
+            var result = await _planningPokerContext.ProductBacklogItem
+                .Include(p => p.Status)
+                .Include(p => p.ProductBacklogItemEstimate)
+                .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId)
+                .ToListAsync();
+
+            var dtoList = _mapper.Map<List<ProductBacklogItemDto>>(result);
+
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemUpdated(productBacklogItem.Id, dtoList);
+
+            return dtoList;
         }
 
         // DELETE api/<ProductBacklogItemController>/5

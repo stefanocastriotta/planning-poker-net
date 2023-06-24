@@ -9,6 +9,7 @@ using PlanningPoker.Models;
 using AutoMapper;
 using AutoMapper.EquivalencyExpression;
 using PlanningPoker.Web.Models;
+using PlanningPoker.Web.SignalrHub;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -54,6 +55,9 @@ builder.Services.AddAutoMapper((serviceProvider, automapper) =>
 
 }, typeof(PlanningPokerContext).Assembly);
 
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<ConnectionManager>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -75,11 +79,15 @@ app.UseAuthentication();
 app.UseIdentityServer();
 app.UseAuthorization();
 
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller}/{action=Index}/{id?}");
 app.MapRazorPages();
 
+app.MapHub<PlanningRoomHub>("/planningRoomHub");
+
 app.MapFallbackToFile("index.html");
+
 
 app.Run();

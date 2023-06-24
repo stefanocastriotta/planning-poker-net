@@ -7,7 +7,7 @@
             <div style="display: flex; flex-direction: row; flex-wrap: wrap">
                 <mat-card *ngFor="let cat of planningRoom.estimateValueCategory.estimateValue">
                     <mat-card-content>
-                       <button mat-flat-button [disabled]="currentUserEstimated()" (click)="registerEstimate(cat)"><h3>{{cat.label}}</h3></button> 
+                       <button mat-flat-button [color]="cardSelected(cat) ? 'primary' : ''" (click)="registerEstimate(cat)"><h3>{{cat.label}}</h3></button> 
                     </mat-card-content>
                 </mat-card>
             </div>
@@ -20,7 +20,7 @@
                 <th>Id</th>
                 <th>Description</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th *ngIf="currentUserId === planningRoom.creationUserId">Actions</th>
             </tr>
             </thead>
             <tbody>
@@ -28,27 +28,29 @@
                 <td>{{ item.id }}</td>
                 <td>{{ item.description }}</td>
                 <td>{{ item.status.label }}</td>
-                <td>
+                <td *ngIf="currentUserId === planningRoom.creationUserId">
                     <button mat-flat-button color="primary" (click)="selectProductBacklogItem(item)" *ngIf="item.id !== selectedProductBacklogItem?.id">Select</button>
                     <button mat-icon-button (click)="deleteProductBacklogItem(item)"><mat-icon>delete</mat-icon></button>
                 </td>
             </tr>
             </tbody>
         </table>
-        <h3>Add new product backlog item</h3>
-        <form (ngSubmit)="onSubmit()" [formGroup]="productBacklogItemCreation">
-            <mat-form-field>
-            <mat-label>Description</mat-label>
-            <input matInput formControlName="description">
-            <mat-error *ngIf="errorHandling('description', 'required')">
-                You must provide a <strong>description</strong>
-            </mat-error>
-            </mat-form-field>
-        
-            <button type="submit" mat-raised-button color="primary" [disabled]="!productBacklogItemCreation.valid">
-            Save
-            </button>
-        </form>
+        <ng-container *ngIf="currentUserId === planningRoom.creationUserId">
+            <h3>Add new product backlog item</h3>
+            <form (ngSubmit)="onSubmit()" [formGroup]="productBacklogItemCreation">
+                <mat-form-field>
+                <mat-label>Description</mat-label>
+                <input matInput formControlName="description">
+                <mat-error *ngIf="errorHandling('description', 'required')">
+                    You must provide a <strong>description</strong>
+                </mat-error>
+                </mat-form-field>
+            
+                <button type="submit" mat-raised-button color="primary" [disabled]="!productBacklogItemCreation.valid">
+                Save
+                </button>
+            </form>
+        </ng-container>
     </div>
     <div style="width: fit-content;">
         <h2>Users</h2>

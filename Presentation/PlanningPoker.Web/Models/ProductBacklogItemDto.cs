@@ -15,7 +15,7 @@ namespace PlanningPoker.Web.Models
 
         public int StatusId { get; set; }
 
-        public List<ProductBacklogItemEstimateModel> ProductBacklogItemEstimate { get; set; }
+        public List<ProductBacklogItemEstimateDto> ProductBacklogItemEstimate { get; set; }
 
         public ProductBacklogItemStatusDto Status { get; set; }
     }
