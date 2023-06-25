@@ -12,7 +12,13 @@
                 </mat-card>
             </div>
         </ng-container>
-        
+        <ng-container *ngIf="selectedProductBacklogItem?.status?.id === completedStatus">
+            <canvas baseChart class="chart"
+            [data]="estimateChartData"
+            [type]="estimateChartType">
+            </canvas>
+        </ng-container>
+
         <h3>Product backlog items</h3>
         <table class='table table-striped' aria-labelledby="tableLabel" *ngIf="planningRoom.productBacklogItem">
             <thead>

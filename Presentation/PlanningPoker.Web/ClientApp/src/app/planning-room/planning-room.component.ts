@@ -7,6 +7,7 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthorizeService } from 'src/api-authorization/authorize.service';
 import { Profile, User } from 'oidc-client';
 import * as signalR from '@microsoft/signalr';
+import { ChartData, ChartOptions, ChartType } from 'chart.js';
 
 @Component({
   selector: 'app-planning-room',
@@ -23,6 +24,9 @@ export class PlanningRoomComponent {
   currentUserId: string;
 
   selectedProductBacklogItem: ProductBacklogItem | undefined;
+
+  public estimateChartData: ChartData<'doughnut'>;
+  public estimateChartType: ChartType = 'doughnut';
 
   constructor(private route: ActivatedRoute, private http: HttpClient, @Inject('BASE_URL') private baseUrl: string, private authorizeService: AuthorizeService){}
  
@@ -59,14 +63,18 @@ export class PlanningRoomComponent {
             this.hubConnection.on('ProductBacklogItemUpdated', (updatedId: number, productBacklogItems: ProductBacklogItem[]) => {
               this.planningRoom.productBacklogItem = productBacklogItems;
               this.selectedProductBacklogItem = this.planningRoom.productBacklogItem.find(p => p.id === updatedId);
+              if (this.selectedProductBacklogItem?.statusId === ProductBacklogItemStatusEnum.Completed){
+                this.setChart();
+              }
             });
 
             this.hubConnection.on('ProductBacklogItemEstimated', (estimate: ProductBacklogItemEstimate, productBacklogItem: ProductBacklogItem) => {
+              this.selectedProductBacklogItem?.productBacklogItemEstimate.push(estimate);
               if (productBacklogItem.statusId !== this.selectedProductBacklogItem?.statusId){
                 this.selectedProductBacklogItem!.statusId = productBacklogItem.statusId;
                 this.selectedProductBacklogItem!.status = productBacklogItem.status;
+                this.setChart();
               }
-              this.selectedProductBacklogItem?.productBacklogItemEstimate.push(estimate);
             });
 
           }
@@ -86,11 +94,14 @@ export class PlanningRoomComponent {
   }
 
   selectProductBacklogItem(productBacklogItem: ProductBacklogItem){
-    this.http.put<ProductBacklogItem[]>(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`, {...productBacklogItem, statusId: ProductBacklogItemStatusEnum.Processing, status: undefined},
+    this.http.put<ProductBacklogItem[]>(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`, {...productBacklogItem, statusId: productBacklogItem.statusId === ProductBacklogItemStatusEnum.Completed ? productBacklogItem.statusId : ProductBacklogItemStatusEnum.Processing, status: undefined},
     { headers:{ 'content-type': 'application/json'}   })
     .subscribe(res => {
       this.planningRoom.productBacklogItem = res;
       this.selectedProductBacklogItem = this.planningRoom.productBacklogItem.find(p => p.id === productBacklogItem.id);
+      if (this.selectedProductBacklogItem?.statusId === ProductBacklogItemStatusEnum.Completed){
+        this.setChart();
+      }
     });
   }
 
@@ -124,6 +135,10 @@ export class PlanningRoomComponent {
     return ProductBacklogItemStatusEnum.Processing
   }
 
+  get completedStatus(): number {
+    return ProductBacklogItemStatusEnum.Completed
+  }
+
   registerEstimate(estimate: EstimateValue) {
     if (!this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === this.currentUserId)){
       this.http.post<RegisterEstimateResult>(`${this.baseUrl}api/productbacklogitemestimate`, 
@@ -132,11 +147,12 @@ export class PlanningRoomComponent {
         } as ProductBacklogItemEstimate,
         { headers:{ 'content-type': 'application/json'}   }).subscribe(
           (res) => {
+            this.selectedProductBacklogItem?.productBacklogItemEstimate.push(res.estimate);
             if (res.productBacklogItem.statusId !== this.selectedProductBacklogItem?.statusId){
               this.selectedProductBacklogItem!.statusId = res.productBacklogItem.statusId;
               this.selectedProductBacklogItem!.status = res.productBacklogItem.status;
+              this.setChart();
             }
-            this.selectedProductBacklogItem?.productBacklogItemEstimate.push(res.estimate);
           }
         )
     }
@@ -145,4 +161,28 @@ export class PlanningRoomComponent {
   public errorHandling = (control: string, error: string) => {
     return this.productBacklogItemCreation.controls[control].hasError(error);
   }
+
+  private setChart(){
+    let map: {[key: string]: number} = {};
+    this.selectedProductBacklogItem?.productBacklogItemEstimate.forEach(element => {
+      let ev = this.planningRoom.estimateValueCategory.estimateValue.find(e => e.id === element.estimateValueId);
+      if (ev) {
+        if (!map[ev?.label])
+        {
+          map[ev.label] = 1;
+        }
+        else{
+          map[ev.label] += 1;
+        }
+      }
+    })
+
+    this.estimateChartData = {
+      labels: Object.keys(map),
+      datasets: [
+        { data: Object.values(map) }
+      ]
+    }
+  }
 }
+

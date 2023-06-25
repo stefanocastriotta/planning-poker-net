@@ -21,6 +21,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { PlanningRoomComponent } from './planning-room/planning-room.component';
+import { NgChartsModule } from 'ng2-charts';
 
 @NgModule({
   declarations: [
@@ -45,6 +46,7 @@ import { PlanningRoomComponent } from './planning-room/planning-room.component';
     MatCardModule,
     MatIconModule,
     ApiAuthorizationModule,
+    NgChartsModule,
     RouterModule.forRoot([
       { path: '', component: HomeComponent, pathMatch: 'full' },
       { path: 'room-creation', component: RoomCreationComponent, canActivate: [AuthorizeGuard] },
