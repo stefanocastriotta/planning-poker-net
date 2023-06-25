@@ -50,6 +50,11 @@ export interface ProductBacklogItemEstimate{
     createDate: Date;
 }
 
+export interface RegisterEstimateResult{
+    productBacklogItem: ProductBacklogItem;
+    estimate: ProductBacklogItemEstimate;
+}
+
 export enum ProductBacklogItemStatusEnum{
     "Inserted" = 1,
     "Processing" = 2,

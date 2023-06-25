@@ -121,15 +121,5 @@ namespace PlanningPoker.Web.Controllers
             await _planningPokerContext.SaveChangesAsync();
             return NoContent();
         }
-
-        // DELETE api/<PlanningRoomController>/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
-        {
-            var entity = new PlanningRoom { Id = id };
-            _planningPokerContext.PlanningRoom.Remove(entity);
-            await _planningPokerContext.SaveChangesAsync();
-            return NoContent();
-        }
     }
 }

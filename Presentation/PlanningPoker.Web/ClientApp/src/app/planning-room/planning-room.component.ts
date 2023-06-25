@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Component, Inject } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-import { EstimateValue, PlanningRoom, PlanningRoomUser, ProductBacklogItem, ProductBacklogItemEstimate, ProductBacklogItemStatusEnum } from '../app.entities';
+import { EstimateValue, PlanningRoom, PlanningRoomUser, ProductBacklogItem, ProductBacklogItemEstimate, ProductBacklogItemStatusEnum, RegisterEstimateResult } from '../app.entities';
 import { switchMap, tap } from 'rxjs';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { AuthorizeService } from 'src/api-authorization/authorize.service';
@@ -61,7 +61,11 @@ export class PlanningRoomComponent {
               this.selectedProductBacklogItem = this.planningRoom.productBacklogItem.find(p => p.id === updatedId);
             });
 
-            this.hubConnection.on('ProductBacklogItemEstimated', (estimate: ProductBacklogItemEstimate) => {
+            this.hubConnection.on('ProductBacklogItemEstimated', (estimate: ProductBacklogItemEstimate, productBacklogItem: ProductBacklogItem) => {
+              if (productBacklogItem.statusId !== this.selectedProductBacklogItem?.statusId){
+                this.selectedProductBacklogItem!.statusId = productBacklogItem.statusId;
+                this.selectedProductBacklogItem!.status = productBacklogItem.status;
+              }
               this.selectedProductBacklogItem?.productBacklogItemEstimate.push(estimate);
             });
 
@@ -122,13 +126,17 @@ export class PlanningRoomComponent {
 
   registerEstimate(estimate: EstimateValue) {
     if (!this.selectedProductBacklogItem?.productBacklogItemEstimate.some(pe => pe.userId === this.currentUserId)){
-      this.http.post<ProductBacklogItemEstimate>(`${this.baseUrl}api/productbacklogitemestimate`, 
+      this.http.post<RegisterEstimateResult>(`${this.baseUrl}api/productbacklogitemestimate`, 
         { estimateValueId: estimate.id,
           productBacklogItemId: this.selectedProductBacklogItem?.id
         } as ProductBacklogItemEstimate,
         { headers:{ 'content-type': 'application/json'}   }).subscribe(
           (res) => {
-            this.selectedProductBacklogItem?.productBacklogItemEstimate.push(res);
+            if (res.productBacklogItem.statusId !== this.selectedProductBacklogItem?.statusId){
+              this.selectedProductBacklogItem!.statusId = res.productBacklogItem.statusId;
+              this.selectedProductBacklogItem!.status = res.productBacklogItem.status;
+            }
+            this.selectedProductBacklogItem?.productBacklogItemEstimate.push(res.estimate);
           }
         )
     }

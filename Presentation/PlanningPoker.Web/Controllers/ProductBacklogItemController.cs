@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using PlanningPoker.Domain;
 using PlanningPoker.Infrastructure;
 using PlanningPoker.Web.Models;
 using PlanningPoker.Web.SignalrHub;
@@ -64,11 +65,11 @@ namespace PlanningPoker.Web.Controllers
             }
 
             using var transaction = await _planningPokerContext.Database.BeginTransactionAsync();
-            if (productBacklogItem.StatusId == 2)
+            if (productBacklogItem.StatusId == (int)ProductBaclogItemStatusEnum.Processing)
             {
                 _planningPokerContext.ProductBacklogItem
-                    .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId && p.StatusId == 2)
-                    .ExecuteUpdate(u => u.SetProperty(p => p.StatusId, p => 1));
+                    .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId && p.StatusId == (int)ProductBaclogItemStatusEnum.Processing)
+                    .ExecuteUpdate(u => u.SetProperty(p => p.StatusId, p => (int)ProductBaclogItemStatusEnum.Inserted));
             }
 
             await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
@@ -92,8 +93,12 @@ namespace PlanningPoker.Web.Controllers
 
         // DELETE api/<ProductBacklogItemController>/5
         [HttpDelete("{id}")]
-        public void Delete(int id)
+        public async Task<ActionResult> Delete(int id)
         {
+            var entity = new ProductBacklogItem { Id = id };
+            _planningPokerContext.ProductBacklogItem.Remove(entity);
+            await _planningPokerContext.SaveChangesAsync();
+            return NoContent();
         }
     }
 }
