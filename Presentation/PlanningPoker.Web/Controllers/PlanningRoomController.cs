@@ -64,14 +64,10 @@ namespace PlanningPoker.Web.Controllers
                 return NotFound();
             }
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _planningPokerContext.PlanningRoomUsers.Where(u => u.PlanningRoomId == id && u.UserId == currentUserId).SingleOrDefaultAsync();
-            if (result == null)
+            var result = await _planningPokerContext.RegisterPlanningRoomUserAsync(id, currentUserId);
+            if (result.isNew)
             {
-                await _planningPokerContext.PlanningRoomUsers.AddAsync(new PlanningRoomUsers() {  PlanningRoomId = id, UserId = currentUserId });
-                await _planningPokerContext.SaveChangesAsync();
-
-                var newUser = _planningPokerContext.PlanningRoomUsers.Include(p => p.User).Single(p => p.UserId == currentUserId && p.PlanningRoomId == id);
-                await _hubContext.Clients.GroupExcept("PlanningRoom" + id, _connectionManager.GetUserConnectionId(currentUserId)).UserJoined(_mapper.Map<PlanningRoomUserDto>(newUser));
+                await _hubContext.Clients.GroupExcept("PlanningRoom" + id, _connectionManager.GetUserConnectionId(currentUserId)).UserJoined(_mapper.Map<PlanningRoomUserDto>(result.planningRoomUsers));
             }
 
             return NoContent();
@@ -81,34 +77,14 @@ namespace PlanningPoker.Web.Controllers
         [HttpPost]
         public async Task<ActionResult> Post([FromBody] PlanningRoomModel value)
         {
-            if (value.NewEstimateValueCategoryValues != null)
-            {
-                var categoryValues = value.NewEstimateValueCategoryValues.Split(",").ToList();
-                EstimateValueCategory newCategory = new EstimateValueCategory();
-                newCategory.Description = value.NewEstimateValueCategory;
-                foreach (var category in categoryValues)
-                {
-                    newCategory.EstimateValue.Add(new EstimateValue
-                    {
-                        Label = category,
-                        Value = int.TryParse(category, out int estimateValue) ? estimateValue : 0,
-                        Order = categoryValues.IndexOf(category) + 1
-                    });
-                }
-                await  _planningPokerContext.AddAsync(newCategory);
-                await _planningPokerContext.SaveChangesAsync();
-                value.EstimateValueCategoryId = newCategory.Id;
-            }
-            value.CreationUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _planningPokerContext.PlanningRoom.Persist(_mapper).InsertOrUpdateAsync(value);
-            await _planningPokerContext.SaveChangesAsync();
+            var result = await _planningPokerContext.CreatePlanningRoomAsync(_mapper, value, User.FindFirstValue(ClaimTypes.NameIdentifier));
             
             return Created(Url.Action(nameof(Get), new { id = result.Id }), _mapper.Map<PlanningRoomDto>(result));
         }
 
         // PUT api/<PlanningRoomController>/5
         [HttpPut("{id}")]
-        public async Task<ActionResult> Put(int id, [FromBody] PlanningRoom value)
+        public async Task<ActionResult> Put(int id, [FromBody] PlanningRoomModel value)
         {
             var existing = await _planningPokerContext.PlanningRoom.SingleOrDefaultAsync(p => p.Id == id);
             if (existing == null)
@@ -116,7 +92,7 @@ namespace PlanningPoker.Web.Controllers
                 return NotFound();
             }
             existing.Description = value.Description;
-            _planningPokerContext.PlanningRoom.Update(value);
+            _planningPokerContext.PlanningRoom.Update(existing);
             await _planningPokerContext.SaveChangesAsync();
             return NoContent();
         }

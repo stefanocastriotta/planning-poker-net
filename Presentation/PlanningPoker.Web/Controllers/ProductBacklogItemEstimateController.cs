@@ -32,37 +32,19 @@ namespace PlanningPoker.Web.Controllers
         [HttpPost]
         public async Task<ActionResult<RegisterEstimateResult>> Post([FromBody] ProductBacklogItemEstimateModel productBacklogItemEstimateModel)
         {
-            var existing = await _planningPokerContext.ProductBacklogItem
-                .Include(p => p.ProductBacklogItemEstimate)
-                .Include(p => p.PlanningRoom.PlanningRoomUsers)
-                .SingleOrDefaultAsync(p => p.Id == productBacklogItemEstimateModel.ProductBacklogItemId);
-            if (existing == null)
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            productBacklogItemEstimateModel.UserId = currentUserId;
+            
+            var result = await _planningPokerContext.RegisterProductBacklogItemEstimateAsync(_mapper, productBacklogItemEstimateModel);
+
+            if (result.updatedProductBacklogItem == null)
             {
                 return NotFound();
             }
 
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            productBacklogItemEstimateModel.UserId = currentUserId;
-
-            using var transaction = await _planningPokerContext.Database.BeginTransactionAsync();
-
-            var estimate = _mapper.Map<ProductBacklogItemEstimate>(productBacklogItemEstimateModel);
-            existing.ProductBacklogItemEstimate.Add(estimate);
-            if (existing.PlanningRoom.PlanningRoomUsers.All(u => existing.ProductBacklogItemEstimate.Any(p => p.UserId == u.UserId)))
-            {
-                existing.StatusId = (int)ProductBaclogItemStatusEnum.Completed;
-            }
-
-            _planningPokerContext.Update(existing);
-
-            await _planningPokerContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            existing.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == existing.StatusId);
-
-            var estimateDto = _mapper.Map<ProductBacklogItemEstimateDto>(estimate);
-            var productBacklogItemDto = _mapper.Map<ProductBacklogItemDto>(existing);
-            await _hubContext.Clients.GroupExcept("PlanningRoom" + existing.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemEstimated(estimateDto, productBacklogItemDto);
+            var estimateDto = _mapper.Map<ProductBacklogItemEstimateDto>(result.newEstimate);
+            var productBacklogItemDto = _mapper.Map<ProductBacklogItemDto>(result.updatedProductBacklogItem);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + result.updatedProductBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemEstimated(estimateDto, productBacklogItemDto);
 
             return Ok(new RegisterEstimateResult { Estimate = estimateDto, ProductBacklogItem = productBacklogItemDto });
         }

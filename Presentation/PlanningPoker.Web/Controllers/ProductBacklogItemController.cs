@@ -42,13 +42,10 @@ namespace PlanningPoker.Web.Controllers
                 return NotFound();
             }
 
-            var result = await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
-            await _planningPokerContext.SaveChangesAsync();
-            result.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
-
-            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _planningPokerContext.RegisterProductBacklogItemAsync(_mapper, productBacklogItem);
 
             var dto = _mapper.Map<ProductBacklogItemDto>(result);
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemInserted(dto);
 
             return Ok(dto);
@@ -57,32 +54,20 @@ namespace PlanningPoker.Web.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<List<ProductBacklogItemDto>>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
         {
-            var existing = await _planningPokerContext.ProductBacklogItem.SingleOrDefaultAsync(p => p.Id == id);
-            if (existing == null)
+            var result = await _planningPokerContext.UpdateProductBacklogItemAsync(_mapper, id, productBacklogItem);
+
+            if (result == null)
             {
                 return NotFound();
             }
 
-            using var transaction = await _planningPokerContext.Database.BeginTransactionAsync();
-            if (productBacklogItem.StatusId == (int)ProductBaclogItemStatusEnum.Processing)
-            {
-                _planningPokerContext.ProductBacklogItem
-                    .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId && p.StatusId == (int)ProductBaclogItemStatusEnum.Processing)
-                    .ExecuteUpdate(u => u.SetProperty(p => p.StatusId, p => (int)ProductBaclogItemStatusEnum.Inserted));
-            }
-
-            await _planningPokerContext.ProductBacklogItem.Persist(_mapper).InsertOrUpdateAsync(productBacklogItem);
-            await _planningPokerContext.SaveChangesAsync();
-            
-            await transaction.CommitAsync();
-
-            var result = await _planningPokerContext.ProductBacklogItem
+            var productNacklogItemList = await _planningPokerContext.ProductBacklogItem
                 .Include(p => p.Status)
                 .Include(p => p.ProductBacklogItemEstimate)
                 .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId)
                 .ToListAsync();
 
-            var dtoList = _mapper.Map<List<ProductBacklogItemDto>>(result);
+            var dtoList = _mapper.Map<List<ProductBacklogItemDto>>(productNacklogItemList);
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemUpdated(productBacklogItem.Id, dtoList);
