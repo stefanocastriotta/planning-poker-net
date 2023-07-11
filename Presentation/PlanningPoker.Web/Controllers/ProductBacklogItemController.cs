@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using PlanningPoker.Domain;
-using PlanningPoker.Infrastructure;
-using PlanningPoker.Web.Models;
+using PlanningPoker.Application;
+using PlanningPoker.Application.ProductBacklogItems;
 using PlanningPoker.Web.SignalrHub;
 using System.Security.Claims;
 

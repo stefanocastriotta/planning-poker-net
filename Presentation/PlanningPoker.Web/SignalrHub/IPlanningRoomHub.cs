@@ -1,4 +1,5 @@
-﻿using PlanningPoker.Web.Models;
+﻿using PlanningPoker.Application.PlanningRooms;
+using PlanningPoker.Application.ProductBacklogItems;
 
 namespace PlanningPoker.Web.SignalrHub
 {

@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
-using PlanningPoker.Domain;
-using PlanningPoker.Web.Models;
 
 namespace PlanningPoker.Web.SignalrHub
 {

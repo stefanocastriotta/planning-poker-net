@@ -40,8 +40,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Application\PlanningPoker.Application\PlanningPoker.Application.csproj" />
-    <ProjectReference Include="..\..\Domain\PlanningPoker.Domain\PlanningPoker.Domain.csproj" />
-    <ProjectReference Include="..\..\Infrastructure\PlanningPoker.Infrastructure\PlanningPoker.Infrastructure.csproj" />
   </ItemGroup>
 
     <Target Name="DebugEnsureNodeEnv" BeforeTargets="Build" Condition=" '$(Configuration)' == 'Debug' And !Exists('$(SpaRoot)node_modules') ">

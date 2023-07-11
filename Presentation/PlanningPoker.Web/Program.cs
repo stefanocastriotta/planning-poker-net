@@ -2,13 +2,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI;
 using Microsoft.EntityFrameworkCore;
+using PlanningPoker.Application;
 using PlanningPoker.Data;
-using PlanningPoker.Domain;
-using PlanningPoker.Infrastructure;
 using PlanningPoker.Models;
-using AutoMapper;
-using AutoMapper.EquivalencyExpression;
-using PlanningPoker.Web.Models;
 using PlanningPoker.Web.SignalrHub;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -34,26 +30,7 @@ builder.Services.AddDbContext<PlanningPokerContext>(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
-builder.Services.AddAutoMapper((serviceProvider, automapper) =>
-{
-    automapper.AddCollectionMappers();
-    automapper.UseEntityFrameworkCoreModel<PlanningPokerContext>(serviceProvider);
-    automapper.CreateMap<PlanningRoom, PlanningRoomDto>();
-    automapper.CreateMap<PlanningRoomModel, PlanningRoom>();
-    automapper.CreateMap<EstimateValue, EstimateValueDto>();
-    automapper.CreateMap<EstimateValueCategory, EstimateValueCategoryDto>();
-    automapper.CreateMap<AspNetUsers, PlanningRoomUserDto>();
-    automapper.CreateMap<PlanningRoomUsers, PlanningRoomUserDto>()
-        .IncludeMembers(p => p.User);
-
-    automapper.CreateMap<ProductBacklogItemModel, ProductBacklogItem>();
-    automapper.CreateMap<ProductBacklogItem, ProductBacklogItemDto>();
-    automapper.CreateMap<ProductBacklogItemEstimate, ProductBacklogItemEstimateDto>();
-    automapper.CreateMap<ProductBacklogItemEstimateModel, ProductBacklogItemEstimate>();
-
-    automapper.CreateMap<ProductBacklogItemStatus, ProductBacklogItemStatusDto>();
-
-}, typeof(PlanningPokerContext).Assembly);
+builder.Services.AddPlanningPokerApplicationServices();
 
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<ConnectionManager>();
