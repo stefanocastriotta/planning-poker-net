@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PlanningPoker.Application.PlanningRooms;
 
@@ -28,10 +27,10 @@ namespace PlanningPoker.Application
                 value.EstimateValueCategoryId = newCategory.Id;
             }
             value.CreationUserId = userId;
-            var result = await PlanningRoom.Persist(mapper).InsertOrUpdateAsync(value);
+            var result = await PlanningRoom.AddAsync(mapper.Map<PlanningRoom>(value));
             await SaveChangesAsync();
 
-            return result;
+            return result.Entity;
         }
 
         public async Task<(PlanningRoomUsers planningRoomUsers, bool isNew)> RegisterPlanningRoomUserAsync(int planningRoomId, string userId)

@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PlanningPoker.Application.ProductBacklogItems;
 
@@ -7,20 +6,12 @@ namespace PlanningPoker.Application
 {
     public partial class PlanningPokerContext
     {
-        public async Task<ProductBacklogItem> RegisterProductBacklogItemAsync(IMapper mapper, ProductBacklogItemModel productBacklogItem)
+        public async Task<int> UpdateProductBacklogItemAsync(ProductBacklogItem productBacklogItem)
         {
-            var result = await ProductBacklogItem.Persist(mapper).InsertOrUpdateAsync(productBacklogItem);
-            await SaveChangesAsync();
-            result.Status = ProductBacklogItemStatus.Single(s => s.Id == result.StatusId);
-            return result;
-        }
-
-        public async Task<ProductBacklogItem?> UpdateProductBacklogItemAsync(IMapper mapper, int id, ProductBacklogItemModel productBacklogItem)
-        {
-            var existing = await ProductBacklogItem.AnyAsync(p => p.Id == id);
+            var existing = await ProductBacklogItem.AnyAsync(p => p.Id == productBacklogItem.Id);
             if (!existing)
             {
-                return null;
+                return 0;
             }
             using var transaction = await Database.BeginTransactionAsync();
             if (productBacklogItem.StatusId == (int)ProductBaclogItemStatusEnum.Processing)
@@ -30,29 +21,28 @@ namespace PlanningPoker.Application
                     .ExecuteUpdate(u => u.SetProperty(p => p.StatusId, p => (int)ProductBaclogItemStatusEnum.Inserted));
             }
 
-            var result = await ProductBacklogItem.Persist(mapper).InsertOrUpdateAsync(productBacklogItem);
-            await SaveChangesAsync();
+            ProductBacklogItem.Update(productBacklogItem);
+            int res = await SaveChangesAsync();
 
             await transaction.CommitAsync();
 
-            return result;
+            return res;
         }
 
-        public async Task<(ProductBacklogItemEstimate? newEstimate, ProductBacklogItem? updatedProductBacklogItem)> RegisterProductBacklogItemEstimateAsync(IMapper mapper, ProductBacklogItemEstimateModel productBacklogItemEstimateModel)
+        public async Task<ProductBacklogItem?> RegisterProductBacklogItemEstimateAsync(ProductBacklogItemEstimate productBacklogItemEstimate)
         {
             var existingProductBacklogItem = await ProductBacklogItem
                 .Include(p => p.ProductBacklogItemEstimate)
                 .Include(p => p.PlanningRoom.PlanningRoomUsers)
-                .SingleOrDefaultAsync(p => p.Id == productBacklogItemEstimateModel.ProductBacklogItemId);
+                .SingleOrDefaultAsync(p => p.Id == productBacklogItemEstimate.ProductBacklogItemId);
             if (existingProductBacklogItem == null)
             {
-                return (null, null);
+                return null;
             }
 
             using var transaction = await Database.BeginTransactionAsync();
 
-            var newEstimate = mapper.Map<ProductBacklogItemEstimate>(productBacklogItemEstimateModel);
-            existingProductBacklogItem.ProductBacklogItemEstimate.Add(newEstimate);
+            existingProductBacklogItem.ProductBacklogItemEstimate.Add(productBacklogItemEstimate);
             if (existingProductBacklogItem.PlanningRoom.PlanningRoomUsers.All(u => existingProductBacklogItem.ProductBacklogItemEstimate.Any(p => p.UserId == u.UserId)))
             {
                 existingProductBacklogItem.StatusId = (int)ProductBaclogItemStatusEnum.Completed;
@@ -60,12 +50,12 @@ namespace PlanningPoker.Application
 
             Update(existingProductBacklogItem);
 
-            await SaveChangesAsync();
+            int res = await SaveChangesAsync();
             await transaction.CommitAsync();
 
             existingProductBacklogItem.Status = ProductBacklogItemStatus.Single(s => s.Id == existingProductBacklogItem.StatusId);
 
-            return (newEstimate, existingProductBacklogItem);
+            return existingProductBacklogItem;
         }
     }
 }

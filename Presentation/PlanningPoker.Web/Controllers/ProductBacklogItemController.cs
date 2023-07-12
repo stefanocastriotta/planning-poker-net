@@ -34,17 +34,20 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductBacklogItemDto>> Post([FromBody] ProductBacklogItemModel productBacklogItem)
+        public async Task<ActionResult<ProductBacklogItemDto>> Post([FromBody] ProductBacklogItemModel productBacklogItemModel)
         {
-            var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == productBacklogItem.PlanningRoomId);
+            var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == productBacklogItemModel.PlanningRoomId);
             if (!existing)
             {
                 return NotFound();
             }
 
-            var result = await _planningPokerContext.RegisterProductBacklogItemAsync(_mapper, productBacklogItem);
+            var productBacklogItem = _mapper.Map<ProductBacklogItem>(productBacklogItemModel);
+            var result = await _planningPokerContext.ProductBacklogItem.AddAsync(productBacklogItem);
+            await _planningPokerContext.SaveChangesAsync();
+            productBacklogItem.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == productBacklogItem.StatusId);
 
-            var dto = _mapper.Map<ProductBacklogItemDto>(result);
+            var dto = _mapper.Map<ProductBacklogItemDto>(result.Entity);
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemInserted(dto);
 
@@ -54,9 +57,14 @@ namespace PlanningPoker.Web.Controllers
         [HttpPut("{id}")]
         public async Task<ActionResult<List<ProductBacklogItemDto>>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
         {
-            var result = await _planningPokerContext.UpdateProductBacklogItemAsync(_mapper, id, productBacklogItem);
+            if (id != productBacklogItem.Id)
+            {
+                ModelState.AddModelError("Id", "Product backlog item id must be equal to id url parameter");
+                return BadRequest(ModelState);
+            }
+            var result = await _planningPokerContext.UpdateProductBacklogItemAsync(_mapper.Map<ProductBacklogItem>(productBacklogItem));
 
-            if (result == null)
+            if (result == 0)
             {
                 return NotFound();
             }
