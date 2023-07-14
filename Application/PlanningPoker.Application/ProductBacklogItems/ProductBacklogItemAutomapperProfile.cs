@@ -9,7 +9,7 @@ namespace PlanningPoker.Application.ProductBacklogItems
             CreateMap<ProductBacklogItemModel, ProductBacklogItem>();
             CreateMap<ProductBacklogItem, ProductBacklogItemDto>();
             CreateMap<ProductBacklogItemEstimate, ProductBacklogItemEstimateDto>();
-            CreateMap<ProductBacklogItemEstimateModel, ProductBacklogItemEstimate>();
+            CreateMap<RegisterProductBacklogItemEstimateCommand, ProductBacklogItemEstimate>();
 
             CreateMap<ProductBacklogItemStatus, ProductBacklogItemStatusDto>();
         }

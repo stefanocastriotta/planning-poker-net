@@ -1,6 +1,4 @@
-﻿using AutoMapper.Internal;
-using CommandQuery;
-using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.DependencyInjection;
 using PlanningPoker.Application.PlanningRooms;
 
 namespace PlanningPoker.Application
@@ -9,9 +7,9 @@ namespace PlanningPoker.Application
     {
         public static void AddPlanningPokerApplicationServices(this IServiceCollection services)
         {
-            typeof(PlanningRoomRequestHandler).Assembly
+            typeof(PlanningRoomCommandHandler).Assembly
             .GetTypes()
-            .Where(a => (a.GetGenericInterface(typeof(ICommandHandler<>)) != null || a.GetGenericInterface(typeof(ICommandHandler<,>)) != null) && !a.IsAbstract && !a.IsInterface)
+            .Where(type => typeof(IHandler).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface)
             .ToList()
             .ForEach(typeToRegister =>
             {

@@ -1,9 +1,7 @@
 ﻿namespace PlanningPoker.Application.ProductBacklogItems
 {
-    public class ProductBacklogItemEstimateModel
+    public class RegisterProductBacklogItemEstimateCommand
     {
-        public int Id { get; set; }
-
         public int ProductBacklogItemId { get; set; }
 
         public int EstimateValueId { get; set; }

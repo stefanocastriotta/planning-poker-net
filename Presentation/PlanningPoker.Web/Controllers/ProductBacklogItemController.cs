@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.EntityFrameworkCore;
+using FluentResults;
 using Humanizer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,18 +24,19 @@ namespace PlanningPoker.Web.Controllers
         readonly IMapper _mapper;
         readonly IHubContext<PlanningRoomHub, IPlanningRoomHub> _hubContext;
         readonly ConnectionManager _connectionManager;
+        readonly ProductBacklogItemCommandHandler _productBacklogItemCommandHandler;
 
-
-        public ProductBacklogItemController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager)
+        public ProductBacklogItemController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager, ProductBacklogItemCommandHandler productBacklogItemCommandHandler)
         {
             _planningPokerContext = planningPokerContext;
             _mapper = mapper;
             _hubContext = hubContext;
             _connectionManager = connectionManager;
+            _productBacklogItemCommandHandler = productBacklogItemCommandHandler;
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductBacklogItemDto>> Post([FromBody] ProductBacklogItemModel productBacklogItemModel)
+        public async Task<ActionResult<ProductBacklogItemDto>> AddNewProductBacklogItem([FromBody] ProductBacklogItemModel productBacklogItemModel)
         {
             var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == productBacklogItemModel.PlanningRoomId);
             if (!existing)
@@ -55,18 +57,15 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<ProductBacklogItemDto>>> Put(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
+        public async Task<ActionResult<List<ProductBacklogItemDto>>> UpdateProductBacklogItem(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
         {
-            if (id != productBacklogItem.Id)
-            {
-                ModelState.AddModelError("Id", "Product backlog item id must be equal to id url parameter");
-                return BadRequest(ModelState);
-            }
-            var result = await _planningPokerContext.UpdateProductBacklogItemAsync(_mapper.Map<ProductBacklogItem>(productBacklogItem));
+            var result = await _productBacklogItemCommandHandler.UpdateProductBacklogItemAsync(id, productBacklogItem);
 
-            if (result == 0)
+            if (result.IsFailed)
             {
-                return NotFound();
+                if (result.HasError(e => e.HasMetadata("ErrorCode", m => m.Equals(404))))
+                    return NotFound(result);
+                return BadRequest(result);
             }
 
             var productNacklogItemList = await _planningPokerContext.ProductBacklogItem
@@ -78,7 +77,7 @@ namespace PlanningPoker.Web.Controllers
             var dtoList = _mapper.Map<List<ProductBacklogItemDto>>(productNacklogItemList);
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemUpdated(productBacklogItem.Id, dtoList);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemUpdated(id, dtoList);
 
             return dtoList;
         }

@@ -7,7 +7,7 @@ namespace PlanningPoker.Application.PlanningRooms
         public PlanningRoomAutomapperProfile()
         {
             CreateMap<PlanningRoom, PlanningRoomDto>();
-            CreateMap<PlanningRoomModel, PlanningRoom>();
+            CreateMap<CreatePlanningRoomCommand, PlanningRoom>();
             CreateMap<AspNetUsers, PlanningRoomUserDto>();
             CreateMap<PlanningRoomUsers, PlanningRoomUserDto>()
                 .IncludeMembers(p => p.User);

@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.EntityFrameworkCore;
+using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -20,34 +21,37 @@ namespace PlanningPoker.Web.Controllers
         readonly IMapper _mapper;
         readonly IHubContext<PlanningRoomHub, IPlanningRoomHub> _hubContext;
         readonly ConnectionManager _connectionManager;
+        readonly ProductBacklogItemCommandHandler _productBacklogItemCommandHandler;
 
-        public ProductBacklogItemEstimateController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager)
+        public ProductBacklogItemEstimateController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager, ProductBacklogItemCommandHandler productBacklogItemCommandHandler)
         {
             _planningPokerContext = planningPokerContext;
             _mapper = mapper;
             _hubContext = hubContext;
             _connectionManager = connectionManager;
+            _productBacklogItemCommandHandler = productBacklogItemCommandHandler;
         }
 
         [HttpPost]
-        public async Task<ActionResult<RegisterEstimateResult>> Post([FromBody] ProductBacklogItemEstimateModel productBacklogItemEstimateModel)
+        public async Task<ActionResult<RegisterEstimateResultDto>> RegisterProductBacklogItem([FromBody] RegisterProductBacklogItemEstimateCommand productBacklogItemEstimateModel)
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             productBacklogItemEstimateModel.UserId = currentUserId;
 
-            var newEstimate = _mapper.Map<ProductBacklogItemEstimate>(productBacklogItemEstimateModel);
-            var result = await _planningPokerContext.RegisterProductBacklogItemEstimateAsync(newEstimate);
+            var result = await _productBacklogItemCommandHandler.RegisterProductBacklogItemEstimateAsync(productBacklogItemEstimateModel);
 
-            if (result == null)
+            if (result.IsFailed)
             {
-                return NotFound();
+                if (result.HasError(e => e.HasMetadata("ErrorCode", m => m.Equals(404))))
+                    return NotFound(result);
+                return BadRequest(result);
             }
 
-            var estimateDto = _mapper.Map<ProductBacklogItemEstimateDto>(newEstimate);
-            var productBacklogItemDto = _mapper.Map<ProductBacklogItemDto>(result);
-            await _hubContext.Clients.GroupExcept("PlanningRoom" + result.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemEstimated(estimateDto, productBacklogItemDto);
+            var estimateDto = _mapper.Map<ProductBacklogItemEstimateDto>(result.Value.ProductBacklogItemEstimate);
+            var productBacklogItemDto = _mapper.Map<ProductBacklogItemDto>(result.Value.ProductBacklogItemEstimate.ProductBacklogItem);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItemDto.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemEstimated(estimateDto, productBacklogItemDto);
 
-            return Ok(new RegisterEstimateResult { Estimate = estimateDto, ProductBacklogItem = productBacklogItemDto });
+            return Ok(new RegisterEstimateResultDto { Estimate = estimateDto, ProductBacklogItem = productBacklogItemDto });
         }
     }
 }
