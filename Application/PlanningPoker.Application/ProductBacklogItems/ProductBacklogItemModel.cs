@@ -1,4 +1,6 @@
-﻿namespace PlanningPoker.Application.ProductBacklogItems
+﻿using AutoMapper;
+
+namespace PlanningPoker.Application.ProductBacklogItems
 {
     public class ProductBacklogItemModel
     {

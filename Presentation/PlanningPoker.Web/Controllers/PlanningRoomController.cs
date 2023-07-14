@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using AutoMapper.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -21,15 +20,17 @@ namespace PlanningPoker.Web.Controllers
     {
         readonly PlanningPokerContext _planningPokerContext;
         readonly IMapper _mapper;
+        readonly PlanningRoomRequestHandler _planningRoomRequestHandler;
         readonly IHubContext<PlanningRoomHub, IPlanningRoomHub> _hubContext;
         readonly ConnectionManager _connectionManager;
 
-        public PlanningRoomController(PlanningPokerContext planningPokerContext, IMapper mapper, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager)
+        public PlanningRoomController(PlanningPokerContext planningPokerContext, IMapper mapper, PlanningRoomRequestHandler planningRoomRequestHandler, IHubContext<PlanningRoomHub, IPlanningRoomHub> hubContext, ConnectionManager connectionManager)
         {
             _planningPokerContext = planningPokerContext;
             _mapper = mapper;
             _hubContext = hubContext;
             _connectionManager = connectionManager;
+            _planningRoomRequestHandler = planningRoomRequestHandler;
         }
 
 
@@ -56,18 +57,17 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPost("{id}/registeruser")]
-        public async Task<ActionResult> RegisterUser(int id)
+        public async Task<ActionResult> RegisterUser(int id, CancellationToken cancellationToken)
         {
-            var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == id);
-            if (!existing)
-            {
-                return NotFound();
-            }
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var result = await _planningPokerContext.RegisterPlanningRoomUserAsync(id, currentUserId);
-            if (result.isNew)
+            var result = await _planningRoomRequestHandler.HandleAsync(new RegisterPlanningRoomUserRequest(id, currentUserId), cancellationToken);
+            if (result.IsFailed)
             {
-                await _hubContext.Clients.GroupExcept("PlanningRoom" + id, _connectionManager.GetUserConnectionId(currentUserId)).UserJoined(_mapper.Map<PlanningRoomUserDto>(result.planningRoomUsers));
+                return BadRequest(result.Errors);
+            }
+            else if (result.Value.IsNew)
+            {
+                await _hubContext.Clients.GroupExcept("PlanningRoom" + id, _connectionManager.GetUserConnectionId(currentUserId)).UserJoined(_mapper.Map<PlanningRoomUserDto>(result.Value.PlanningRoomUsers));
             }
 
             return NoContent();
@@ -75,9 +75,11 @@ namespace PlanningPoker.Web.Controllers
 
         // POST api/<PlanningRoomController>
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] PlanningRoomModel value)
+        public async Task<ActionResult> Post([FromBody] PlanningRoomModel value, CancellationToken cancellationToken)
         {
-            var result = await _planningPokerContext.CreatePlanningRoomAsync(_mapper, value, User.FindFirstValue(ClaimTypes.NameIdentifier));
+            value.CreationUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var result = await _planningRoomRequestHandler.HandleAsync(value, cancellationToken);
             
             return Created(Url.Action(nameof(Get), new { id = result.Id }), _mapper.Map<PlanningRoomDto>(result));
         }

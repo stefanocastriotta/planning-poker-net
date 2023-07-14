@@ -1,8 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using CommandQuery;
+using System.ComponentModel.DataAnnotations;
 
 namespace PlanningPoker.Application.PlanningRooms
 {
-    public class PlanningRoomModel
+    public class PlanningRoomModel : ICommand<PlanningRoom>
     {
         public int Id { get; set; }
 
