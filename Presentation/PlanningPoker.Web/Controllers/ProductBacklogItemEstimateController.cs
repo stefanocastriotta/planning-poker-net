@@ -33,18 +33,18 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<RegisterEstimateResultDto>> RegisterProductBacklogItem([FromBody] RegisterProductBacklogItemEstimateCommand productBacklogItemEstimateModel)
+        public async Task<ActionResult<RegisterEstimateResultDto>> RegisterProductBacklogItem([FromBody] RegisterProductBacklogItemEstimateCommand productBacklogItemEstimateModel, CancellationToken cancellationToken)
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             productBacklogItemEstimateModel.UserId = currentUserId;
 
-            var result = await _productBacklogItemCommandHandler.RegisterProductBacklogItemEstimateAsync(productBacklogItemEstimateModel);
+            var result = await _productBacklogItemCommandHandler.RegisterProductBacklogItemEstimateAsync(productBacklogItemEstimateModel, cancellationToken);
 
             if (result.IsFailed)
             {
-                if (result.HasError(e => e.HasMetadata("ErrorCode", m => m.Equals(404))))
-                    return NotFound(result);
-                return BadRequest(result);
+                if (result.HasNotFoundErrorMetadata())
+                    return NotFound(result.Errors.Select(e => e.ToString()));
+                return BadRequest(result.Errors.Select(e => e.ToString()));
             }
 
             var estimateDto = _mapper.Map<ProductBacklogItemEstimateDto>(result.Value.ProductBacklogItemEstimate);

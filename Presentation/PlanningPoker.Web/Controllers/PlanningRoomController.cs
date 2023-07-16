@@ -37,7 +37,7 @@ namespace PlanningPoker.Web.Controllers
 
         // GET api/<PlanningRoomController>/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<PlanningRoomDto?>> Get(int id)
+        public async Task<ActionResult<PlanningRoomDto?>> Get(int id, CancellationToken cancellationToken)
         {
             var result = await _planningPokerContext.PlanningRoom
                 .Include(p => p.EstimateValueCategory)
@@ -48,7 +48,7 @@ namespace PlanningPoker.Web.Controllers
                     .ThenInclude(p => p.ProductBacklogItemEstimate)
                 .Include(p => p.PlanningRoomUsers)
                     .ThenInclude(p => p.User)
-                .SingleOrDefaultAsync(p => p.Id == id);
+                .SingleOrDefaultAsync(p => p.Id == id, cancellationToken);
             if (result == null)
             {
                 return NotFound();
@@ -64,9 +64,9 @@ namespace PlanningPoker.Web.Controllers
             var result = await _planningRoomRequestHandler.RegisterPlanningRoomUserAsync(new RegisterPlanningRoomUserCommand(id, currentUserId), cancellationToken);
             if (result.IsFailed)
             {
-                if (result.HasError(e => e.HasMetadata("ErrorCode", m => m.Equals(404))))
-                    return NotFound(result);
-                return BadRequest(result);
+                if (result.HasNotFoundErrorMetadata())
+                    return NotFound(result.Errors.Select(e => e.ToString()));
+                return BadRequest(result.Errors.Select(e => e.ToString()));
             }
             else if (result.Value.IsNew)
             {
@@ -83,8 +83,14 @@ namespace PlanningPoker.Web.Controllers
             value.CreationUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             var result = await _planningRoomRequestHandler.CreatePlanningRoomAsync(value, cancellationToken);
-            
-            return Created(Url.Action(nameof(Get), new { id = result.Id }), _mapper.Map<PlanningRoomDto>(result));
+            if (result.IsFailed)
+            {
+                if (result.HasNotFoundErrorMetadata())
+                    return NotFound(result.Errors.Select(e => e.ToString()));
+                return BadRequest(result.Errors.Select(e => e.ToString()));
+            }
+
+            return Created(Url.Action(nameof(Get), new { id = result.Value.Id }), _mapper.Map<PlanningRoomDto>(result.Value));
         }
     }
 }

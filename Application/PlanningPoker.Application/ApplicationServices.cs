@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
 using PlanningPoker.Application.PlanningRooms;
 
 namespace PlanningPoker.Application
@@ -15,6 +16,7 @@ namespace PlanningPoker.Application
             {
                 services.AddScoped(typeToRegister);
             });
+            services.AddValidatorsFromAssemblyContaining<CreatePlanningRoomCommandValidator>();
             services.AddAutoMapper((serviceProvider, automapper) =>
             {
                 automapper.AddMaps(typeof(ApplicationServices).Assembly);

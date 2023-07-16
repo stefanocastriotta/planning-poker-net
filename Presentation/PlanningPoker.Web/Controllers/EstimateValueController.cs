@@ -20,61 +20,26 @@ namespace PlanningPoker.Web.Controllers
         
         // GET api/<EstimateValueController>/5
         [HttpGet("category/{id}/getvalues")]
-        public async Task<ActionResult<List<EstimateValue>>> GetEstimateValues(int id)
+        public async Task<ActionResult<List<EstimateValue>>> GetEstimateValues(int id, CancellationToken cancellationToken)
         {
-            return Ok(await _planningPokerContext.EstimateValue.Where(v => v.CategoryId == id).ToListAsync());
+            return Ok(await _planningPokerContext.EstimateValue.Where(v => v.CategoryId == id).ToListAsync(cancellationToken));
         }
 
 
         // GET api/<EstimateValueController>/5
         [HttpGet("categories")]
-        public async Task<ActionResult<IEnumerable<EstimateValueCategory>>> GetCategories()
+        public async Task<ActionResult<IEnumerable<EstimateValueCategory>>> GetCategories(CancellationToken cancellationToken)
         {
-            return Ok(await _planningPokerContext.EstimateValueCategory.ToListAsync());
+            return Ok(await _planningPokerContext.EstimateValueCategory.ToListAsync(cancellationToken));
         }
 
         // POST api/<EstimateValueController>
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] EstimateValueCategory value)
+        public async Task<ActionResult> Post([FromBody] EstimateValueCategory value, CancellationToken cancellationToken)
         {
-            await _planningPokerContext.EstimateValueCategory.AddAsync(value);
-            await _planningPokerContext.SaveChangesAsync();
+            await _planningPokerContext.EstimateValueCategory.AddAsync(value, cancellationToken);
+            await _planningPokerContext.SaveChangesAsync(cancellationToken);
             return NoContent();
         }
-
-        // PUT api/<EstimateValueController>/5
-        [HttpPut("{id}")]
-        public async Task<ActionResult> Put(int id, [FromBody] EstimateValueCategory value)
-        {
-            var existing = await _planningPokerContext.EstimateValueCategory.SingleOrDefaultAsync(e => e.Id == id);
-            if (existing == null)
-            {
-                return NotFound();
-            }
-            existing.Description = value.Description;
-            for (int i = existing.EstimateValue.Count -1; i >= 0; i--)
-            {
-                var estimateValue = existing.EstimateValue.ElementAt(i);
-                var newValue = value.EstimateValue.FirstOrDefault(v => v.Id == estimateValue.Id);
-                if (newValue != null)
-                {
-                    estimateValue.Value = newValue.Value;
-                    estimateValue.Label = newValue.Label;
-                    estimateValue.Order = newValue.Order;
-                }
-                else
-                {
-                    existing.EstimateValue.Remove(estimateValue);
-                }
-            }
-            foreach (var estimateValue in value.EstimateValue.Where(v  => !existing.EstimateValue.Any(ev => ev.Id == v.Id)))
-            {
-                existing.EstimateValue.Add(estimateValue);
-            }
-            _planningPokerContext.Update(existing);
-            await _planningPokerContext.SaveChangesAsync();
-            return NoContent();
-        }
-
     }
 }

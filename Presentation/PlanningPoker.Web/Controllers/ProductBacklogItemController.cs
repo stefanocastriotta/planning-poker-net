@@ -36,59 +36,56 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ProductBacklogItemDto>> AddNewProductBacklogItem([FromBody] ProductBacklogItemModel productBacklogItemModel)
+        public async Task<ActionResult<ProductBacklogItemDto>> AddNewProductBacklogItem([FromBody] CreateProductBacklogItemCommand createProductBacklogItemCommand, CancellationToken cancellationToken)
         {
-            var existing = await _planningPokerContext.PlanningRoom.AnyAsync(p => p.Id == productBacklogItemModel.PlanningRoomId);
-            if (!existing)
+            var result = await _productBacklogItemCommandHandler.CreateProductBacklogItemAsync(createProductBacklogItemCommand, cancellationToken);
+            if (result.IsFailed)
             {
-                return NotFound();
+                if (result.HasNotFoundErrorMetadata())
+                    return NotFound(result.Errors.Select(e => e.ToString()));
+                return BadRequest(result.Errors.Select(e => e.ToString()));
             }
 
-            var productBacklogItem = _mapper.Map<ProductBacklogItem>(productBacklogItemModel);
-            var result = await _planningPokerContext.ProductBacklogItem.AddAsync(productBacklogItem);
-            await _planningPokerContext.SaveChangesAsync();
-            productBacklogItem.Status = _planningPokerContext.ProductBacklogItemStatus.Single(s => s.Id == productBacklogItem.StatusId);
-
-            var dto = _mapper.Map<ProductBacklogItemDto>(result.Entity);
+            var dto = _mapper.Map<ProductBacklogItemDto>(result.Value);
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemInserted(dto);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + createProductBacklogItemCommand.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemInserted(dto);
 
             return Ok(dto);
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<ProductBacklogItemDto>>> UpdateProductBacklogItem(int id, [FromBody] ProductBacklogItemModel productBacklogItem)
+        public async Task<ActionResult<List<ProductBacklogItemDto>>> UpdateProductBacklogItem(int id, [FromBody] UpdateProductBacklogItemCommand productBacklogItem, CancellationToken cancellationToken)
         {
-            var result = await _productBacklogItemCommandHandler.UpdateProductBacklogItemAsync(id, productBacklogItem);
+            var result = await _productBacklogItemCommandHandler.UpdateProductBacklogItemAsync(id, productBacklogItem, cancellationToken);
 
             if (result.IsFailed)
             {
-                if (result.HasError(e => e.HasMetadata("ErrorCode", m => m.Equals(404))))
-                    return NotFound(result);
-                return BadRequest(result);
+                if (result.HasNotFoundErrorMetadata())
+                    return NotFound(result.Errors.Select(e => e.ToString()));
+                return BadRequest(result.Errors.Select(e => e.ToString()));
             }
 
-            var productNacklogItemList = await _planningPokerContext.ProductBacklogItem
+            var productBacklogItemList = await _planningPokerContext.ProductBacklogItem
                 .Include(p => p.Status)
                 .Include(p => p.ProductBacklogItemEstimate)
-                .Where(p => p.PlanningRoomId == productBacklogItem.PlanningRoomId)
-                .ToListAsync();
+                .Where(p => p.PlanningRoomId == result.Value.PlanningRoomId)
+                .ToListAsync(cancellationToken);
 
-            var dtoList = _mapper.Map<List<ProductBacklogItemDto>>(productNacklogItemList);
+            var dtoList = _mapper.Map<List<ProductBacklogItemDto>>(productBacklogItemList);
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            await _hubContext.Clients.GroupExcept("PlanningRoom" + productBacklogItem.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemUpdated(id, dtoList);
+            await _hubContext.Clients.GroupExcept("PlanningRoom" + result.Value.PlanningRoomId, _connectionManager.GetUserConnectionId(currentUserId)).ProductBacklogItemUpdated(id, dtoList);
 
             return dtoList;
         }
 
         // DELETE api/<ProductBacklogItemController>/5
         [HttpDelete("{id}")]
-        public async Task<ActionResult> Delete(int id)
+        public async Task<ActionResult> Delete(int id, CancellationToken cancellationToken)
         {
             var entity = new ProductBacklogItem { Id = id };
             _planningPokerContext.ProductBacklogItem.Remove(entity);
-            await _planningPokerContext.SaveChangesAsync();
+            await _planningPokerContext.SaveChangesAsync(cancellationToken);
             return NoContent();
         }
     }

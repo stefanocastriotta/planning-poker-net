@@ -6,7 +6,7 @@ namespace PlanningPoker.Application.ProductBacklogItems
     {
         public ProductBacklogItemAutomapperProfile()
         {
-            CreateMap<ProductBacklogItemModel, ProductBacklogItem>();
+            CreateMap<CreateProductBacklogItemCommand, ProductBacklogItem>();
             CreateMap<ProductBacklogItem, ProductBacklogItemDto>();
             CreateMap<ProductBacklogItemEstimate, ProductBacklogItemEstimateDto>();
             CreateMap<RegisterProductBacklogItemEstimateCommand, ProductBacklogItemEstimate>();
