@@ -8,6 +8,8 @@ import { AuthorizeService } from 'src/api-authorization/authorize.service';
 import { Profile, User } from 'oidc-client';
 import * as signalR from '@microsoft/signalr';
 import { ChartData, ChartOptions, ChartType } from 'chart.js';
+import { MatDialog } from '@angular/material/dialog';
+import { DeleteProductBacklogItemDialogComponent } from './delete-product-backlog-item-dialog/delete-product-backlog-item-dialog.component';
 
 @Component({
   selector: 'app-planning-room',
@@ -28,7 +30,7 @@ export class PlanningRoomComponent {
   public estimateChartData: ChartData<'doughnut'>;
   public estimateChartType: ChartType = 'doughnut';
 
-  constructor(private route: ActivatedRoute, private http: HttpClient, @Inject('BASE_URL') private baseUrl: string, private authorizeService: AuthorizeService){}
+  constructor(private route: ActivatedRoute, private http: HttpClient, @Inject('BASE_URL') private baseUrl: string, private authorizeService: AuthorizeService, private dialog: MatDialog){}
  
   ngOnInit() {
     this.route.params.subscribe(params => {
@@ -94,7 +96,7 @@ export class PlanningRoomComponent {
   }
 
   selectProductBacklogItem(productBacklogItem: ProductBacklogItem){
-    this.http.put<ProductBacklogItem[]>(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`, {...productBacklogItem, statusId: productBacklogItem.statusId === ProductBacklogItemStatusEnum.Completed ? productBacklogItem.statusId : ProductBacklogItemStatusEnum.Processing, status: undefined},
+    this.http.put<ProductBacklogItem[]>(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`, {statusId: productBacklogItem.statusId === ProductBacklogItemStatusEnum.Completed ? productBacklogItem.statusId : ProductBacklogItemStatusEnum.Processing},
     { headers:{ 'content-type': 'application/json'}   })
     .subscribe(res => {
       this.planningRoom.productBacklogItem = res;
@@ -106,6 +108,19 @@ export class PlanningRoomComponent {
   }
 
   deleteProductBacklogItem(productBacklogItem: ProductBacklogItem){
+      const dialogRef = this.dialog.open(DeleteProductBacklogItemDialogComponent);
+  
+      dialogRef.afterClosed().subscribe((result: Boolean) => {
+        if (result){
+          this.http.delete(`${this.baseUrl}api/productbacklogitem/${productBacklogItem.id}`,
+          { headers:{ 'content-type': 'application/json'}   }).subscribe(
+            () => {
+              this.planningRoom.productBacklogItem.splice(this.planningRoom.productBacklogItem.indexOf(productBacklogItem), 1);
+            }
+          )
+        }
+      });
+
     
   }
 

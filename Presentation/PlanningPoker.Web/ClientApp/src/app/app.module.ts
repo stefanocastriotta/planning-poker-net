@@ -22,6 +22,8 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { PlanningRoomComponent } from './planning-room/planning-room.component';
 import { NgChartsModule } from 'ng2-charts';
+import { MatDialogModule } from '@angular/material/dialog';
+import { DeleteProductBacklogItemDialogComponent } from './planning-room/delete-product-backlog-item-dialog/delete-product-backlog-item-dialog.component';
 
 @NgModule({
   declarations: [
@@ -30,7 +32,8 @@ import { NgChartsModule } from 'ng2-charts';
     HomeComponent,
     FetchDataComponent,
     RoomCreationComponent,
-    PlanningRoomComponent
+    PlanningRoomComponent,
+    DeleteProductBacklogItemDialogComponent
   ],
   imports: [
     BrowserModule.withServerTransition({ appId: 'ng-cli-universal' }),
@@ -45,6 +48,7 @@ import { NgChartsModule } from 'ng2-charts';
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    MatDialogModule,
     ApiAuthorizationModule,
     NgChartsModule,
     RouterModule.forRoot([
