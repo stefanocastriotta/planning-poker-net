@@ -54,9 +54,9 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<ActionResult<List<ProductBacklogItemDto>>> UpdateProductBacklogItem(int id, [FromBody] UpdateProductBacklogItemCommand productBacklogItem, CancellationToken cancellationToken)
+        public async Task<ActionResult<List<ProductBacklogItemDto>>> UpdateProductBacklogItem(int id, [FromBody] UpdateProductBacklogItemCommand updateProductBacklogItemCommand, CancellationToken cancellationToken)
         {
-            var result = await _productBacklogItemCommandHandler.UpdateProductBacklogItemAsync(id, productBacklogItem, cancellationToken);
+            var result = await _productBacklogItemCommandHandler.UpdateProductBacklogItemAsync(id, updateProductBacklogItemCommand, cancellationToken);
 
             if (result.IsFailed)
             {

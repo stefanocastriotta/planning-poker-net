@@ -33,12 +33,12 @@ namespace PlanningPoker.Web.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<RegisterEstimateResultDto>> RegisterProductBacklogItem([FromBody] RegisterProductBacklogItemEstimateCommand productBacklogItemEstimateModel, CancellationToken cancellationToken)
+        public async Task<ActionResult<RegisterEstimateResultDto>> RegisterProductBacklogItem([FromBody] RegisterProductBacklogItemEstimateCommand registerProductBacklogItemEstimateCommand, CancellationToken cancellationToken)
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            productBacklogItemEstimateModel.UserId = currentUserId;
+            registerProductBacklogItemEstimateCommand.UserId = currentUserId;
 
-            var result = await _productBacklogItemCommandHandler.RegisterProductBacklogItemEstimateAsync(productBacklogItemEstimateModel, cancellationToken);
+            var result = await _productBacklogItemCommandHandler.RegisterProductBacklogItemEstimateAsync(registerProductBacklogItemEstimateCommand, cancellationToken);
 
             if (result.IsFailed)
             {
